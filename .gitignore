@@ -11,3 +11,6 @@ collector.env
 *.pkl
 *.db
 kuberag-monitor/kuberag-api*.tar
+*.tar
+*.tar.gz
+*.deb
