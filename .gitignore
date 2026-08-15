@@ -1,8 +1,13 @@
-collector.env
 *.tar.gz
-*.log
+*.deb
+*.tar
 venv/
 __pycache__/
 *.pyc
+*.log
 mlflow.db
 mlruns/
+collector.env
+*.pkl
+*.db
+kuberag-monitor/kuberag-api*.tar
