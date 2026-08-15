@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: kuberag-api
+  namespace: kuberag
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: kuberag-api
+
+  template:
+    metadata:
+      labels:
+        app: kuberag-api
+
+    spec:
+      containers:
+      - name: kuberag-api
+        image: docker.io/library/kuberag-api:v4
+        imagePullPolicy: Never
+
+        ports:
+        - containerPort: 8000
+
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"

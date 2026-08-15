@@ -1,0 +1,11 @@
+cpu_usage,memory_usage,pod_count,restart_count,status
+20,30,5,0,Healthy
+35,40,8,0,Healthy
+45,50,12,1,Healthy
+60,65,18,2,Warning
+70,75,25,3,Warning
+80,82,30,5,Warning
+88,86,35,7,Critical
+92,90,40,10,Critical
+96,94,45,13,Critical
+99,97,50,18,Critical

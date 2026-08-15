@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: load-generator
+  namespace: kuberag
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: load-generator
+
+  template:
+    metadata:
+      labels:
+        app: load-generator
+
+    spec:
+      containers:
+      - name: load-generator
+        image: docker.io/library/kuberag-load:1.2
+        imagePullPolicy: Never
+
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+
+          limits:
+            memory: "256Mi"
+            cpu: "300m"

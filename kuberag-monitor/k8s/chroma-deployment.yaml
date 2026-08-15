@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: chromadb
+  namespace: kuberag
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: chromadb
+
+  template:
+    metadata:
+      labels:
+        app: chromadb
+
+    spec:
+      containers:
+      - name: chromadb
+
+        image: chromadb/chroma:latest
+
+        ports:
+        - containerPort: 8000
+
+        env:
+        - name: IS_PERSISTENT
+          value: "TRUE"

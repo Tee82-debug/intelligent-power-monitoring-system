@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+chromadb
+requests
+pydantic
+pandas
+scikit-learn
+joblib
+mlflow
+prometheus-fastapi-instrumentator
