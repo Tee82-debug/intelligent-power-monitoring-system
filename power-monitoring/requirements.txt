@@ -1,0 +1,22 @@
+# Environment configuration
+python-dotenv
+
+# Elasticsearch
+elasticsearch
+
+# Data processing
+numpy
+pandas
+
+# Machine learning
+scikit-learn
+joblib
+
+# Forecasting
+prophet
+
+# System monitoring
+psutil
+
+# HTTP communication
+requests
