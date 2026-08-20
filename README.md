@@ -303,7 +303,7 @@ This framework enables electrical behavior and compute activity to be analyzed w
 ```text
 intelligent-power-monitoring-system/
 │
-├── cx002-power-poc/
+├── power-monitoring/
 │   ├── forecasting/
 │   ├── acknowledge_alert.py
 │   ├── anomaly_detector.py
@@ -330,7 +330,7 @@ intelligent-power-monitoring-system/
 
 ### Main Components
 
-`cx002-power-poc/` contains the primary monitoring, anomaly detection, forecasting, and alert/incident-management components.
+`power-monitoring/` contains the primary monitoring, anomaly detection, forecasting, and alert/incident-management components.
 
 `kuberag-monitor/` contains the FastAPI-based AI-assisted Kubernetes monitoring application and its deployment resources.
 
@@ -343,7 +343,7 @@ Sensitive configuration values must not be committed to Git.
 The repository provides:
 
 ```text
-cx002-power-poc/collector.env.example
+power-monitoring/collector.env.example
 ```
 
 as a template for local configuration.
@@ -351,7 +351,7 @@ as a template for local configuration.
 From the repository root, create the local configuration file:
 
 ```bash
-cp cx002-power-poc/collector.env.example cx002-power-poc/collector.env
+cp power-monitoring/collector.env.example power-monitoring/collector.env
 ```
 
 Update `collector.env` with the appropriate local configuration.
@@ -401,7 +401,7 @@ On Windows:
 From the repository root:
 
 ```bash
-cp cx002-power-poc/collector.env.example cx002-power-poc/collector.env
+cp power-monitoring/collector.env.example power-monitoring/collector.env
 ```
 
 Edit the newly created `collector.env` and provide the appropriate Elasticsearch and monitoring configuration.
@@ -423,13 +423,13 @@ pip install -r kuberag-monitor/requirements.txt
 From the repository root:
 
 ```bash
-python3 cx002-power-poc/real_node_collector.py
+python3 power-monitoring/real_node_collector.py
 ```
 
 For background execution on Linux:
 
 ```bash
-nohup python3 cx002-power-poc/real_node_collector.py > collector.log 2>&1 &
+nohup python3 power-monitoring/real_node_collector.py > collector.log 2>&1 &
 ```
 
 Additional monitoring and analytical services should be started according to their individual configuration requirements.
