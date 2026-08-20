@@ -324,6 +324,7 @@ intelligent-power-monitoring-system/
 │   ├── incident_manager.py
 │   ├── pod_metrics_collector.py
 │   ├── real_node_collector.py
+│   ├── requirements.txt
 │   ├── resolve_alert.py
 │   └── update_alert_ages.py
 │
@@ -371,10 +372,17 @@ Update `collector.env` with the appropriate local configuration.
 Example:
 
 ```env
-ES_ENDPOINT=http://localhost:9200
-ES_API_KEY=your_elasticsearch_api_key
-PROMETHEUS_URL=http://localhost:9090
-COLLECTION_INTERVAL_SECONDS=15
+ES_ENDPOINT=https://your-elasticsearch-endpoint
+ES_API_KEY=your-api-key-here
+
+ES_INDEX=capstone-cx002-node-metrics
+POD_ES_INDEX=capstone-cx002-pod-metrics
+
+PROMETHEUS_URL=http://localhost:30900
+NODE_NAME=cx-002
+
+POD_INTERVAL_SECONDS=15
+ANOMALY_INTERVAL_SECONDS=30
 ```
 
 > **Security:** Never commit `collector.env`, Elasticsearch API keys, passwords, authentication tokens, or other credentials.
@@ -420,9 +428,13 @@ Edit the newly created `collector.env` and provide the appropriate Elasticsearch
 
 ### 4. Install Dependencies
 
-Install the dependencies required by the component being deployed.
 
-For KubeRAG:
+Install the power monitoring and analytics dependencies:
+
+```bash
+pip install -r power-monitoring/requirements.txt
+
+Install the KubeRAG dependencies:.
 
 ```bash
 pip install -r kuberag-monitor/requirements.txt
