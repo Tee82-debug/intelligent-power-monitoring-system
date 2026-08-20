@@ -305,6 +305,18 @@ intelligent-power-monitoring-system/
 │
 ├── power-monitoring/
 │   ├── forecasting/
+|   |   ├── model_comparison/
+│   |   ├── __init__.py
+│   |   ├── compare_prophet_models.py
+│   |   ├── config.py
+│   |   ├── elastic_loader.py
+│   |   ├── evaluate_forecasts.py
+│   |   ├── forecast_alert_engine.py
+│   |   ├── forecast_data_generator.py
+│   |   ├── model_utils.py
+│   |   ├── predict_prophet.py
+│   |   ├── run_forecast_pipeline.sh
+│   |   └── train_prophet.py
 │   ├── acknowledge_alert.py
 │   ├── anomaly_detector.py
 │   ├── collector.env.example
@@ -316,10 +328,10 @@ intelligent-power-monitoring-system/
 │   └── update_alert_ages.py
 │
 ├── kuberag-monitor/
-│   ├── app/
-│   ├── data/
-│   ├── k8s/
-│   ├── workloads/
+│   ├── app/                    # Application/RAG code
+│   ├── data/                   # cluster_health_csv                    
+│   ├── k8s/                    # Kubernetes manifests
+│   ├── workloads/              # Load-generation workload
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── README.md
