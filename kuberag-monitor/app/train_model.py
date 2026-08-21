@@ -1,9 +1,9 @@
 import os
 
-import pandas as pd
 import joblib
 import mlflow
 import mlflow.sklearn
+import pandas as pd
 from dotenv import load_dotenv
 
 load_dotenv(".env")
@@ -16,8 +16,8 @@ MLFLOW_TRACKING_URI = os.getenv(
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, f1_score, classification_report
 
 df = pd.read_csv("data/cluster_health.csv")
 

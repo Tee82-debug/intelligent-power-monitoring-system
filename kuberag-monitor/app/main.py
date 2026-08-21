@@ -9,7 +9,6 @@ from fastapi import FastAPI, HTTPException
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field
 
-
 load_dotenv(".env")
 
 app = FastAPI(title="KubeRAG MLOps Monitor")
@@ -35,9 +34,7 @@ HEALTH_MODEL_PATH = os.getenv(
 def load_health_model():
     try:
         return joblib.load(HEALTH_MODEL_PATH)
-    except FileNotFoundError:
-        return None
-    except Exception:
+    except (FileNotFoundError, OSError, ValueError):
         return None
 
 

@@ -1,6 +1,7 @@
-import requests
 import random
 import time
+
+import requests
 
 API_URL = "http://kuberag-service.kuberag.svc.cluster.local"
 
@@ -42,7 +43,7 @@ while True:
         print(f"RAG status: {r2.status_code}", flush=True)
         print("Cycle completed.", flush=True)
 
-    except Exception as e:
-        print(f"Error: {e}", flush=True)
+    except requests.RequestException as exc:
+        print(f"Request error: {exc}", flush=True)
 
     time.sleep(360)
