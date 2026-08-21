@@ -1,9 +1,22 @@
+import os
+
 import chromadb
 import requests
+from dotenv import load_dotenv
+
+load_dotenv(".env")
+
+CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
+CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
+OLLAMA_URL = os.getenv(
+    "OLLAMA_URL",
+    "http://localhost:11434/api/generate"
+)
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
 
 client = chromadb.HttpClient(
-    host="localhost",
-    port=8002
+    host=CHROMA_HOST,
+    port=CHROMA_PORT
 )
 
 collection = client.get_collection(
@@ -20,7 +33,9 @@ results = collection.query(
 context = "\n".join(results["documents"][0])
 
 prompt = f"""
-Use the context below to answer the question.
+You are a Kubernetes monitoring assistant.
+
+Use only the context below to answer the question.
 
 Context:
 {context}
@@ -32,12 +47,15 @@ Answer:
 """
 
 response = requests.post(
-    "http://localhost:11434/api/generate",
+    OLLAMA_URL,
     json={
-        "model": "llama3.2:1b",
+        "model": OLLAMA_MODEL,
         "prompt": prompt,
         "stream": False
-    }
+    },
+    timeout=120
 )
+
+response.raise_for_status()
 
 print(response.json()["response"])
