@@ -62,7 +62,7 @@ for pod_entry in pods_output:
 
         counter += 1
 
-    except Exception as exc:
+    except (subprocess.CalledProcessError, ValueError) as exc:
         print(f"Skipping pod entry '{pod_entry}': {exc}")
 
 print(f"Ingested {counter} log documents")
