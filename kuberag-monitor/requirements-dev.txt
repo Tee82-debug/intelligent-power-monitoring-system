@@ -4,3 +4,4 @@ pytest
 httpx
 pytest-cov
 ruff
+pip-audit
