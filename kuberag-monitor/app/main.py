@@ -5,17 +5,29 @@ import chromadb
 import requests
 import joblib
 import pandas as pd
+import os
+from dotenv import load_dotenv
 
+
+load_dotenv(".env")
 
 app = FastAPI(title="KubeRAG MLOps Monitor")
 
 Instrumentator().instrument(app).expose(app)
 
-CHROMA_HOST = "chromadb"
-CHROMA_PORT = 8000
-OLLAMA_URL = "http://ollama:11434/api/generate"
-MODEL_NAME = "llama3.2:1b"
-health_model = joblib.load("models/cluster_health_model.pkl")
+CHROMA_HOST = os.getenv("CHROMA_HOST", "chromadb")
+CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
+OLLAMA_URL = os.getenv(
+    "OLLAMA_URL",
+    "http://ollama:11434/api/generate"
+)
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
+HEALTH_MODEL_PATH = os.getenv(
+    "HEALTH_MODEL_PATH",
+    "models/cluster_health_model.pkl"
+)
+
+health_model = joblib.load(HEALTH_MODEL_PATH)
 
 class HealthPredictRequest(BaseModel):
     cpu_usage: float
