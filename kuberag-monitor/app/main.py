@@ -7,7 +7,7 @@ import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from prometheus_fastapi_instrumentator import Instrumentator
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 load_dotenv(".env")
@@ -45,14 +45,14 @@ health_model = load_health_model()
 
 
 class HealthPredictRequest(BaseModel):
-    cpu_usage: float
-    memory_usage: float
-    pod_count: int
-    restart_count: int
+    cpu_usage: float = Field(ge=0, le=100)
+    memory_usage: float = Field(ge=0, le=100)
+    pod_count: int = Field(ge=0)
+    restart_count: int = Field(ge=0)
 
 
 class AskRequest(BaseModel):
-    question: str
+    question: str = Field(min_length=1, max_length=500)
 
 
 @app.get("/")
