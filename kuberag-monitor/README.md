@@ -314,7 +314,6 @@ kuberag-monitor/
 │   ├── ingest.py
 │   ├── main.py
 │   ├── query.py
-│   ├── rag_k8s.py
 │   ├── rag_test.py
 │   └── train_model.py
 │
@@ -487,7 +486,6 @@ This value should also be configurable for different environments.
 * ChromaDB connection settings are currently hard-coded in several scripts.
 * Ollama model configuration is currently hard-coded to `llama3.2:1b`.
 * The current RAG ingestion script uses a small set of sample monitoring documents.
-* `rag_k8s.py` currently contains only a sample Kubernetes question and is not the primary RAG implementation.
 * Additional error handling would be required for production deployment.
 
 ---
