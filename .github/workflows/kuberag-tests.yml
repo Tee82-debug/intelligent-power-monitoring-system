@@ -43,5 +43,8 @@ jobs:
       - name: Run Ruff lint checks
         run: python -m ruff check .
 
+      - name: Check Ruff formatting
+        run: python -m ruff format --check .
+
       - name: Run API tests with coverage
         run: python -m pytest tests/test_api.py --cov=app.main --cov-report=term-missing --cov-fail-under=80 -v
