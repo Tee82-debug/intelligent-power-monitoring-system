@@ -18,17 +18,11 @@ Instrumentator().instrument(app).expose(app)
 CHROMA_HOST = os.getenv("CHROMA_HOST", "chromadb")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
 
-OLLAMA_URL = os.getenv(
-    "OLLAMA_URL",
-    "http://ollama:11434/api/generate"
-)
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434/api/generate")
 
 MODEL_NAME = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
 
-HEALTH_MODEL_PATH = os.getenv(
-    "HEALTH_MODEL_PATH",
-    "models/cluster_health_model.pkl"
-)
+HEALTH_MODEL_PATH = os.getenv("HEALTH_MODEL_PATH", "models/cluster_health_model.pkl")
 
 
 def load_health_model():
@@ -57,14 +51,8 @@ def home():
     return {
         "project": "KubeRAG MLOps Monitor",
         "status": "running",
-        "features": [
-            "FastAPI",
-            "Kubernetes",
-            "ChromaDB",
-            "Ollama",
-            "RAG"
-        ],
-        "health_model_loaded": health_model is not None
+        "features": ["FastAPI", "Kubernetes", "ChromaDB", "Ollama", "RAG"],
+        "health_model_loaded": health_model is not None,
     }
 
 
@@ -76,16 +64,20 @@ def predict_health(request: HealthPredictRequest):
             detail=(
                 "Cluster health model is unavailable. "
                 "Train the model before using this endpoint."
-            )
+            ),
         )
 
     try:
-        data = pd.DataFrame([{
-            "cpu_usage": request.cpu_usage,
-            "memory_usage": request.memory_usage,
-            "pod_count": request.pod_count,
-            "restart_count": request.restart_count
-        }])
+        data = pd.DataFrame(
+            [
+                {
+                    "cpu_usage": request.cpu_usage,
+                    "memory_usage": request.memory_usage,
+                    "pod_count": request.pod_count,
+                    "restart_count": request.restart_count,
+                }
+            ]
+        )
 
         prediction = health_model.predict(data)[0]
 
@@ -94,45 +86,34 @@ def predict_health(request: HealthPredictRequest):
             "memory_usage": request.memory_usage,
             "pod_count": request.pod_count,
             "restart_count": request.restart_count,
-            "predicted_cluster_status": prediction
+            "predicted_cluster_status": prediction,
         }
 
     except Exception as exc:
         raise HTTPException(
-            status_code=500,
-            detail=f"Cluster health prediction failed: {exc}"
+            status_code=500, detail=f"Cluster health prediction failed: {exc}"
         ) from exc
 
 
 @app.post("/ask")
 def ask_question(request: AskRequest):
     try:
-        client = chromadb.HttpClient(
-            host=CHROMA_HOST,
-            port=CHROMA_PORT
-        )
+        client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
 
-        collection = client.get_collection(
-            name="kuberag_logs"
-        )
+        collection = client.get_collection(name="kuberag_logs")
 
-        results = collection.query(
-            query_texts=[request.question],
-            n_results=2
-        )
+        results = collection.query(query_texts=[request.question], n_results=2)
 
     except Exception as exc:
         raise HTTPException(
-            status_code=503,
-            detail=f"ChromaDB query failed: {exc}"
+            status_code=503, detail=f"ChromaDB query failed: {exc}"
         ) from exc
 
     documents = results.get("documents")
 
     if not documents or not documents[0]:
         raise HTTPException(
-            status_code=404,
-            detail="No relevant monitoring context was found."
+            status_code=404, detail="No relevant monitoring context was found."
         )
 
     context = "\n".join(documents[0])
@@ -154,12 +135,8 @@ Answer:
     try:
         response = requests.post(
             OLLAMA_URL,
-            json={
-                "model": MODEL_NAME,
-                "prompt": prompt,
-                "stream": False
-            },
-            timeout=120
+            json={"model": MODEL_NAME, "prompt": prompt, "stream": False},
+            timeout=120,
         )
 
         response.raise_for_status()
@@ -168,30 +145,25 @@ Answer:
         answer = payload.get("response")
 
         if not answer:
-            raise ValueError(
-                "Ollama response did not contain an answer."
-            )
+            raise ValueError("Ollama response did not contain an answer.")
 
     except requests.Timeout as exc:
         raise HTTPException(
-            status_code=504,
-            detail="Ollama request timed out."
+            status_code=504, detail="Ollama request timed out."
         ) from exc
 
     except requests.RequestException as exc:
         raise HTTPException(
-            status_code=503,
-            detail=f"Ollama service request failed: {exc}"
+            status_code=503, detail=f"Ollama service request failed: {exc}"
         ) from exc
 
     except (ValueError, KeyError) as exc:
         raise HTTPException(
-            status_code=502,
-            detail=f"Invalid response received from Ollama: {exc}"
+            status_code=502, detail=f"Invalid response received from Ollama: {exc}"
         ) from exc
 
     return {
         "question": request.question,
         "retrieved_context": context,
-        "answer": answer
+        "answer": answer,
     }

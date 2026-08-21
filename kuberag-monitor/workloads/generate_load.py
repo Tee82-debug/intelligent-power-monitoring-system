@@ -10,7 +10,7 @@ questions = [
     "Why did the pod restart?",
     "Explain cluster health.",
     "Why is memory utilization increasing?",
-    "What is causing high resource usage?"
+    "What is causing high resource usage?",
 ]
 
 print("Load generator started.", flush=True)
@@ -25,9 +25,9 @@ while True:
                 "cpu_usage": random.randint(20, 95),
                 "memory_usage": random.randint(20, 95),
                 "pod_count": random.randint(5, 40),
-                "restart_count": random.randint(0, 5)
+                "restart_count": random.randint(0, 5),
             },
-            timeout=30
+            timeout=30,
         )
 
         print(f"Prediction status: {r1.status_code}", flush=True)
@@ -35,9 +35,7 @@ while True:
         print("Sending RAG request...", flush=True)
 
         r2 = requests.post(
-            f"{API_URL}/ask",
-            json={"question": random.choice(questions)},
-            timeout=180
+            f"{API_URL}/ask", json={"question": random.choice(questions)}, timeout=180
         )
 
         print(f"RAG status: {r2.status_code}", flush=True)
