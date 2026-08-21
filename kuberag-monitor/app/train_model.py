@@ -1,9 +1,19 @@
+import os
+
 import pandas as pd
 import joblib
 import mlflow
 import mlflow.sklearn
+from dotenv import load_dotenv
 
-mlflow.set_tracking_uri("http://127.0.0.1:30500")
+load_dotenv(".env")
+
+MLFLOW_TRACKING_URI = os.getenv(
+    "MLFLOW_TRACKING_URI",
+    "http://127.0.0.1:30500"
+)
+
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split

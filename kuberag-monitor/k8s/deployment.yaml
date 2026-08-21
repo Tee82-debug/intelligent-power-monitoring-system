@@ -26,6 +26,18 @@ spec:
         ports:
         - containerPort: 8000
 
+        env:
+        - name: CHROMA_HOST
+          value: "chromadb"
+        - name: CHROMA_PORT
+          value: "8000"
+        - name: OLLAMA_URL
+          value: "http://ollama:11434/api/generate"
+        - name: OLLAMA_MODEL
+          value: "llama3.2:1b"
+        - name: HEALTH_MODEL_PATH
+          value: "models/cluster_health_model.pkl"
+
         resources:
           requests:
             memory: "512Mi"
