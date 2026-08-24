@@ -57,3 +57,13 @@ jobs:
 
       - name: Build KubeRAG Docker image
         run: docker build -t kuberag-ci-test .
+
+      - name: Scan KubeRAG Docker image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: kuberag-ci-test
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
