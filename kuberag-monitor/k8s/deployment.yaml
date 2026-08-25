@@ -23,6 +23,12 @@ spec:
         image: ghcr.io/tee82-debug/kuberag-api:latest
         imagePullPolicy: Always
 
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+
         ports:
         - containerPort: 8000
         readinessProbe:
