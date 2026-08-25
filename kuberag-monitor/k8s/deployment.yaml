@@ -20,8 +20,8 @@ spec:
     spec:
       containers:
       - name: kuberag-api
-        image: docker.io/library/kuberag-api:v4
-        imagePullPolicy: Never
+        image: ghcr.io/tee82-debug/kuberag-api:latest
+        imagePullPolicy: Always
 
         ports:
         - containerPort: 8000
