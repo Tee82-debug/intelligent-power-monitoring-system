@@ -1,19 +1,65 @@
 # KubeRAG MLOps Monitor
 
-KubeRAG is an AI-assisted Kubernetes monitoring component within the **Intelligent Power Monitoring & Distribution System**.
+KubeRAG is an AI-assisted Kubernetes monitoring and MLOps component of the **Intelligent Power Monitoring & Distribution System**.
 
-It combines **FastAPI, Kubernetes, ChromaDB, Ollama, machine learning, MLflow, and Prometheus instrumentation** to provide cluster-health prediction and natural-language querying of Kubernetes monitoring context.
+It combines **FastAPI, Kubernetes/k3s, machine learning, ChromaDB, Ollama, MLflow, Prometheus, Docker, GitHub Actions, and GitHub Container Registry (GHCR)** to provide cluster-health prediction, retrieval-augmented monitoring assistance, observability, and containerized deployment.
 
 ---
 
 ## Overview
 
-KubeRAG provides two complementary capabilities:
+KubeRAG provides two primary capabilities:
 
 1. **Machine-learning-based cluster health prediction**
 2. **Retrieval-Augmented Generation (RAG) for Kubernetes monitoring questions**
 
-The application exposes these capabilities through a FastAPI service.
+The system is exposed through a FastAPI service and deployed as a containerized workload in a k3s environment.
+
+The current implementation includes:
+
+- Random Forest cluster-health classification
+- FastAPI prediction and RAG endpoints
+- ChromaDB vector retrieval
+- Ollama-based local LLM inference
+- MLflow experiment tracking
+- Prometheus API instrumentation
+- Docker containerization
+- Kubernetes/k3s orchestration
+- Automated CI validation
+- Container vulnerability scanning
+- Kubernetes manifest validation
+- Automated Docker image publishing to GHCR
+- Kubernetes readiness and liveness probes
+- Non-root container execution
+
+---
+
+## Architecture
+
+```text
+                  Kubernetes / k3s
+                        |
+        +---------------+---------------+
+        |                               |
+        v                               v
+   KubeRAG API                      Prometheus
+     FastAPI                         Metrics
+        |
+        +-------------------+
+        |                   |
+        v                   v
+ Random Forest           ChromaDB
+ Health Model               |
+                             v
+                     Retrieved Context
+                             |
+                             v
+                           Ollama
+                        Llama 3.2 1B
+                             |
+                             v
+                    RAG-Based Response
+```
 
 ---
 
@@ -21,37 +67,37 @@ The application exposes these capabilities through a FastAPI service.
 
 ### Cluster Health Prediction
 
-KubeRAG uses a trained **Random Forest classifier** to predict cluster health based on infrastructure metrics.
+KubeRAG uses a **Random Forest classifier** to predict Kubernetes cluster health from infrastructure metrics.
 
-The prediction model uses the following features:
+The model uses four input features:
 
-* CPU usage
-* Memory usage
-* Pod count
-* Restart count
+- CPU usage
+- Memory usage
+- Pod count
+- Restart count
 
-The target variable is:
+The classifier produces cluster-health states such as:
+
+- `Healthy`
+- `Warning`
+- `Critical`
+
+The model configuration is:
 
 ```text
-status
-```
-
-The model is trained using:
-
-```text
-RandomForestClassifier
-n_estimators = 100
-random_state = 42
-test_size = 0.30
+Algorithm: RandomForestClassifier
+Estimators: 100
+Random State: 42
+Train/Test Split: 70% / 30%
 ```
 
 Training performance is evaluated using:
 
-* Accuracy
-* Weighted F1 Score
-* Classification Report
+- Accuracy
+- Weighted F1 Score
+- Classification Report
 
-The trained model is saved locally as:
+The packaged model is located at:
 
 ```text
 models/cluster_health_model.pkl
@@ -59,47 +105,78 @@ models/cluster_health_model.pkl
 
 ---
 
-## RAG-Based Kubernetes Assistant
+## Verified Health Predictions
 
-The `/ask` API endpoint implements the main RAG workflow.
+The deployed model has been tested through the live `/predict-health` endpoint in the k3s environment.
+
+| CPU Usage | Memory Usage | Pod Count | Restarts | Prediction |
+| ---: | ---: | ---: | ---: | --- |
+| 25% | 40% | 5 | 0 | Healthy |
+| 65% | 70% | 10 | 2 | Warning |
+| 90% | 92% | 18 | 6 | Critical |
+
+These tests verify the complete inference path:
 
 ```text
-User Question
-     │
-     ▼
-FastAPI /ask
-     │
-     ▼
-ChromaDB
-Collection: kuberag_logs
-     │
-     ▼
-Retrieve relevant monitoring context
-     │
-     ▼
-Construct context-constrained prompt
-     │
-     ▼
-Ollama
-Model: llama3.2:1b
-     │
-     ▼
-Natural-language response
+Input Metrics
+     |
+     v
+FastAPI /predict-health
+     |
+     v
+Packaged Random Forest Model
+     |
+     v
+Cluster Health Classification
+     |
+     +--> Healthy
+     +--> Warning
+     +--> Critical
 ```
-
-The application retrieves the two most relevant documents from ChromaDB and supplies them as context to the local Ollama model.
-
-The prompt instructs the model to answer using only the retrieved monitoring context.
 
 ---
 
-## API Endpoints
+## RAG-Based Kubernetes Assistant
 
-### `GET /`
+The `/ask` endpoint implements the Retrieval-Augmented Generation workflow.
 
-Returns basic application status and feature information.
+```text
+User Question
+     |
+     v
+FastAPI /ask
+     |
+     v
+ChromaDB
+Collection: kuberag_logs
+     |
+     v
+Retrieve Relevant Monitoring Context
+     |
+     v
+Construct Context-Constrained Prompt
+     |
+     v
+Ollama
+Model: llama3.2:1b
+     |
+     v
+Natural-Language Response
+```
 
-Example response:
+The application retrieves relevant monitoring documents from ChromaDB and supplies them as context to the local Ollama model.
+
+The prompt constrains the LLM to answer using the retrieved monitoring context.
+
+---
+
+# API Endpoints
+
+## `GET /`
+
+Returns application status, enabled features, and model availability.
+
+Example:
 
 ```json
 {
@@ -111,44 +188,68 @@ Example response:
     "ChromaDB",
     "Ollama",
     "RAG"
-  ]
+  ],
+  "health_model_loaded": true
 }
 ```
 
+The `health_model_loaded` value confirms whether the trained Random Forest artifact was successfully loaded by FastAPI.
+
 ---
 
-### `POST /predict-health`
+## `POST /predict-health`
 
-Predicts cluster health using the trained Random Forest model.
+Predicts Kubernetes cluster health.
 
 Example request:
 
 ```json
 {
-  "cpu_usage": 72.5,
-  "memory_usage": 64.8,
-  "pod_count": 14,
+  "cpu_usage": 65,
+  "memory_usage": 70,
+  "pod_count": 10,
   "restart_count": 2
 }
 ```
 
-Example response structure:
+Example response:
 
 ```json
 {
-  "cpu_usage": 72.5,
-  "memory_usage": 64.8,
-  "pod_count": 14,
+  "cpu_usage": 65.0,
+  "memory_usage": 70.0,
+  "pod_count": 10,
   "restart_count": 2,
-  "predicted_cluster_status": "..."
+  "predicted_cluster_status": "Warning"
 }
 ```
 
-The exact value of `predicted_cluster_status` depends on the labels contained in the training dataset.
+Another example representing higher infrastructure pressure:
+
+```json
+{
+  "cpu_usage": 90,
+  "memory_usage": 92,
+  "pod_count": 18,
+  "restart_count": 6
+}
+```
+
+Response:
+
+```json
+{
+  "cpu_usage": 90.0,
+  "memory_usage": 92.0,
+  "pod_count": 18,
+  "restart_count": 6,
+  "predicted_cluster_status": "Critical"
+}
+```
 
 ---
 
-### `POST /ask`
+## `POST /ask`
 
 Accepts a natural-language Kubernetes monitoring question.
 
@@ -164,8 +265,8 @@ The endpoint:
 
 1. Connects to ChromaDB.
 2. Queries the `kuberag_logs` collection.
-3. Retrieves the two most relevant documents.
-4. Builds a monitoring-specific prompt.
+3. Retrieves relevant monitoring context.
+4. Constructs a monitoring-specific prompt.
 5. Sends the prompt to Ollama.
 6. Returns the retrieved context and generated answer.
 
@@ -181,7 +282,7 @@ Example response structure:
 
 ---
 
-## Machine Learning Workflow
+# Machine Learning Workflow
 
 The health model is trained using:
 
@@ -189,90 +290,166 @@ The health model is trained using:
 data/cluster_health.csv
 ```
 
-The training workflow is:
+The workflow is:
 
 ```text
 cluster_health.csv
-        │
-        ▼
+        |
+        v
 Feature Selection
-        │
-        ├── CPU Usage
-        ├── Memory Usage
-        ├── Pod Count
-        └── Restart Count
-        │
-        ▼
+        |
+        +--> CPU Usage
+        +--> Memory Usage
+        +--> Pod Count
+        +--> Restart Count
+        |
+        v
 Train/Test Split
-70% / 30%
-        │
-        ▼
+     70% / 30%
+        |
+        v
 RandomForestClassifier
-        │
-        ├── Accuracy
-        ├── Weighted F1 Score
-        └── Classification Report
-        │
-        ▼
-MLflow Tracking
-        │
-        ▼
+        |
+        +--> Accuracy
+        +--> Weighted F1 Score
+        +--> Classification Report
+        |
+        v
+Optional MLflow Tracking
+        |
+        v
 cluster_health_model.pkl
-        │
-        ▼
+        |
+        v
+Docker Image
+        |
+        v
 FastAPI /predict-health
 ```
 
-MLflow is used to record:
+---
 
-* Model type
-* Number of estimators
-* Accuracy
-* F1 score
-* Trained model artifact
+## MLflow Tracking
 
-The configured MLflow experiment is:
+MLflow can record:
+
+- Model type
+- Number of estimators
+- Accuracy
+- F1 score
+- Trained model artifact
+
+The configured experiment is:
 
 ```text
 kuberag-cluster-health
 ```
 
+The tracking URI can be configured using:
+
+```text
+MLFLOW_TRACKING_URI
+```
+
+MLflow tracking can also be disabled:
+
+```bash
+ENABLE_MLFLOW=false python app/train_model.py
+```
+
+This is used during Docker image creation so the model can be generated without requiring an active MLflow tracking server during the image build.
+
 ---
 
-## ChromaDB Data Ingestion
+# Model Training and Packaging
 
-The `app/ingest.py` script inserts monitoring documents into the ChromaDB collection:
+## Local Training
+
+The model can be trained manually from the `kuberag-monitor` directory:
+
+```bash
+python app/train_model.py
+```
+
+The script reads:
+
+```text
+data/cluster_health.csv
+```
+
+and generates:
+
+```text
+models/cluster_health_model.pkl
+```
+
+Trained `.pkl` artifacts are excluded from Git.
+
+---
+
+## Automated Docker Model Packaging
+
+The production Docker build automatically trains and packages the model.
+
+```text
+Version-Controlled Training Data
+          |
+          v
+     train_model.py
+          |
+          v
+Random Forest Training
+          |
+          v
+cluster_health_model.pkl
+          |
+          v
+      Docker Image
+          |
+          v
+     KubeRAG API
+```
+
+During the Docker build, MLflow tracking is disabled while model training remains enabled.
+
+This ensures the deployed image contains the model required by `/predict-health` without committing binary model artifacts to the repository.
+
+---
+
+# ChromaDB Data Ingestion
+
+The RAG workflow uses the ChromaDB collection:
 
 ```text
 kuberag_logs
 ```
 
-The current sample documents include monitoring scenarios such as:
+Monitoring documents can represent scenarios such as:
 
-* High CPU utilization
-* Memory pressure
-* Increased pod restarts
-* Normal cluster operation
+- High CPU utilization
+- Memory pressure
+- Increased pod restarts
+- Normal cluster operation
 
-These documents provide retrieval context for testing the RAG workflow.
+These documents provide retrieval context for the RAG workflow.
 
 ---
 
 ## ChromaDB Query Testing
 
-The `app/query.py` script provides a simple retrieval test against the `kuberag_logs` collection.
+The project includes scripts for testing retrieval against the `kuberag_logs` collection.
 
-Example query:
+Example monitoring question:
 
 ```text
 Which node has high CPU usage?
 ```
 
-The script retrieves the two most relevant documents from ChromaDB and prints the result.
+Relevant documents are retrieved and supplied as context to the RAG workflow.
 
 ---
 
-## Prometheus Instrumentation
+# Prometheus Instrumentation
 
 The FastAPI application is instrumented using:
 
@@ -280,81 +457,107 @@ The FastAPI application is instrumented using:
 prometheus-fastapi-instrumentator
 ```
 
-This exposes application metrics that can be collected by Prometheus.
+Application metrics are exposed for Prometheus collection.
 
----
+A Kubernetes `ServiceMonitor` manifest is included for integration with the Prometheus Operator.
 
-## Technology Stack
-
-| Category          | Technology                 |
-| ----------------- | -------------------------- |
-| API               | FastAPI                    |
-| Machine Learning  | scikit-learn Random Forest |
-| Model Tracking    | MLflow                     |
-| Model Persistence | joblib                     |
-| Vector Database   | ChromaDB                   |
-| Local LLM Runtime | Ollama                     |
-| Language Model    | Llama 3.2 1B               |
-| Monitoring        | Prometheus                 |
-| Containerization  | Docker                     |
-| Orchestration     | Kubernetes / k3s           |
-| Data Processing   | pandas                     |
-
----
-
-## Repository Structure
+The monitoring interval is configured at:
 
 ```text
-kuberag-monitor/
-│
-├── app/
-│   ├── chroma_client.py
-│   ├── collect_cluster_info.py
-│   ├── collect_k8s_logs.py
-│   ├── ingest.py
-│   ├── main.py
-│   ├── query.py
-│   ├── rag_test.py
-│   └── train_model.py
-│
-├── data/
-│   └── cluster_health.csv
-│
-├── k8s/
-│   ├── chroma-deployment.yaml
-│   ├── chroma-service.yaml
-│   ├── deployment.yaml
-│   ├── load-generator.yaml
-│   ├── mlflow-deployment.yaml
-│   ├── mlflow-service.yaml
-│   ├── ollama-deployment.yaml
-│   ├── ollama-service.yaml
-│   ├── service.yaml
-│   └── servicemonitor.yaml
-│
-├── models/
-│   └── README.md
-│
-├── workloads/
-│   ├── Dockerfile
-│   └── generate_load.py
-│
-├── Dockerfile
-├── README.md
-└── requirements.txt
+15s
 ```
 
 ---
 
-## Python Dependencies
+# Technology Stack
 
-Install dependencies from the `kuberag-monitor` directory:
+| Category | Technology |
+| --- | --- |
+| API | FastAPI |
+| Machine Learning | scikit-learn Random Forest |
+| Model Tracking | MLflow |
+| Model Persistence | joblib |
+| Vector Database | ChromaDB |
+| Local LLM Runtime | Ollama |
+| Language Model | Llama 3.2 1B |
+| Monitoring | Prometheus |
+| Containerization | Docker |
+| Container Registry | GitHub Container Registry |
+| Orchestration | Kubernetes / k3s |
+| Data Processing | pandas |
+| Testing | pytest |
+| Coverage | pytest-cov |
+| Linting / Formatting | Ruff |
+| Dependency Security | pip-audit |
+| Container Security | Trivy |
+| Kubernetes Validation | kubeconform |
+| CI/CD | GitHub Actions |
+
+---
+
+# Repository Structure
+
+```text
+kuberag-monitor/
+|
++-- app/
+|   +-- chroma_client.py
+|   +-- collect_cluster_info.py
+|   +-- collect_k8s_logs.py
+|   +-- ingest.py
+|   +-- main.py
+|   +-- query.py
+|   +-- rag_test.py
+|   +-- train_model.py
+|
++-- data/
+|   +-- cluster_health.csv
+|
++-- k8s/
+|   +-- chroma-deployment.yaml
+|   +-- chroma-service.yaml
+|   +-- deployment.yaml
+|   +-- load-generator.yaml
+|   +-- mlflow-deployment.yaml
+|   +-- mlflow-service.yaml
+|   +-- ollama-deployment.yaml
+|   +-- ollama-service.yaml
+|   +-- service.yaml
+|   +-- servicemonitor.yaml
+|
++-- models/
+|   +-- README.md
+|
++-- tests/
+|
++-- workloads/
+|   +-- Dockerfile
+|   +-- generate_load.py
+|
++-- .dockerignore
++-- Dockerfile
++-- README.md
++-- requirements.txt
++-- requirements-dev.txt
+```
+
+---
+
+# Python Dependencies
+
+Runtime dependencies are installed using:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Current dependencies include:
+Development and CI dependencies are installed using:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+Core technologies include:
 
 ```text
 fastapi
@@ -371,87 +574,362 @@ prometheus-fastapi-instrumentator
 
 ---
 
-## Training the Health Model
+# Running Locally
 
-The FastAPI application expects the trained model at:
+## Install Dependencies
 
-```text
-models/cluster_health_model.pkl
-```
-
-Create the models directory if it does not already exist:
+From `kuberag-monitor`:
 
 ```bash
-mkdir -p models
+pip install -r requirements.txt
 ```
 
-Train the model from the `kuberag-monitor` directory:
+## Train the Model
 
 ```bash
 python app/train_model.py
 ```
 
-The training script reads:
+To train without MLflow:
 
-```text
-data/cluster_health.csv
+```bash
+ENABLE_MLFLOW=false python app/train_model.py
 ```
 
-and writes the trained model to:
-
-```text
-models/cluster_health_model.pkl
-```
-
-Because trained `.pkl` artifacts are excluded from Git, the model should be generated locally before starting the FastAPI application.
-
----
-
-## Running the API
-
-After installing dependencies and training the model:
+## Start FastAPI
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-FastAPI interactive documentation is available at:
+The API is then available at:
 
 ```text
-/docs
+http://localhost:8000
 ```
 
-when accessing the service locally.
+Interactive FastAPI documentation is available at:
+
+```text
+http://localhost:8000/docs
+```
 
 ---
 
-## Kubernetes Deployment
+# Docker
+
+Build the image:
+
+```bash
+docker build -t kuberag-api .
+```
+
+Run locally:
+
+```bash
+docker run --rm -p 8000:8000 kuberag-api
+```
+
+The Docker build automatically generates and packages the health model.
+
+---
+
+# Container Security
+
+The KubeRAG API image runs as a dedicated non-root Linux user:
+
+```text
+User: appuser
+UID: 10001
+GID: 10001
+```
+
+The Docker image explicitly switches from root to:
+
+```dockerfile
+USER appuser
+```
+
+The Kubernetes security context further enforces:
+
+```yaml
+runAsNonRoot: true
+runAsUser: 10001
+runAsGroup: 10001
+allowPrivilegeEscalation: false
+```
+
+All unnecessary Linux capabilities are dropped:
+
+```yaml
+capabilities:
+  drop:
+    - ALL
+```
+
+This reduces the privileges available to the application if the container is compromised.
+
+---
+
+# Kubernetes Deployment
 
 The `k8s/` directory contains manifests for:
 
-* KubeRAG application deployment
-* Application service
-* ChromaDB
-* Ollama
-* MLflow
-* Load generator
-* Prometheus ServiceMonitor
+- KubeRAG API
+- KubeRAG service
+- ChromaDB
+- Ollama
+- MLflow
+- Load generator
+- Prometheus ServiceMonitor
 
-These components are designed to run within the Kubernetes/k3s environment.
+The KubeRAG API uses the CI-published GHCR image:
+
+```text
+ghcr.io/tee82-debug/kuberag-api:latest
+```
+
+The service exposes:
+
+```text
+Container Port: 8000
+Service Port: 80
+NodePort: 30080
+```
 
 ---
 
-## Workload Generator
+## Kubernetes Health Probes
+
+The API deployment includes both readiness and liveness probes.
+
+### Readiness Probe
+
+```text
+Path: /
+Port: 8000
+Initial Delay: 5 seconds
+Period: 10 seconds
+Timeout: 3 seconds
+Failure Threshold: 3
+```
+
+The readiness probe prevents Kubernetes from routing traffic to the pod until FastAPI is ready.
+
+### Liveness Probe
+
+```text
+Path: /
+Port: 8000
+Initial Delay: 15 seconds
+Period: 20 seconds
+Timeout: 3 seconds
+Failure Threshold: 3
+```
+
+The liveness probe allows Kubernetes to detect an unresponsive API and restart the container when repeated health checks fail.
+
+---
+
+# GitHub Container Registry
+
+Successful CI runs on `main` publish the KubeRAG image to:
+
+```text
+ghcr.io/tee82-debug/kuberag-api
+```
+
+Images are published with two tags:
+
+```text
+latest
+<commit-sha>
+```
+
+Example:
+
+```bash
+docker pull ghcr.io/tee82-debug/kuberag-api:latest
+```
+
+The SHA-based tag provides an immutable reference to the image generated from a particular Git commit.
+
+---
+
+# CI/CD Pipeline
+
+KubeRAG uses **GitHub Actions** to automatically validate application and deployment changes.
+
+The workflow performs:
+
+1. Source checkout
+2. Python environment setup
+3. Development dependency installation
+4. Ruff lint validation
+5. Ruff formatting validation
+6. Python dependency security audit
+7. FastAPI tests
+8. Test coverage enforcement
+9. Docker image build
+10. Trivy container vulnerability scan
+11. Kubernetes manifest validation
+12. GHCR authentication
+13. Docker image publishing after successful changes reach `main`
+
+---
+
+## Test Coverage
+
+API tests are executed with pytest and pytest-cov.
+
+The CI pipeline enforces a minimum coverage threshold of:
+
+```text
+80%
+```
+
+A pull request fails CI if coverage drops below the configured threshold.
+
+---
+
+## Dependency Security
+
+Python dependencies are checked using:
+
+```text
+pip-audit
+```
+
+Known vulnerabilities are surfaced during CI.
+
+Temporary vulnerability exceptions may be used when an upstream dependency does not yet provide a compatible patched release. These exceptions are documented directly in the workflow and should be removed when compatible fixes become available.
+
+---
+
+## Container Vulnerability Scanning
+
+The built Docker image is scanned using:
+
+```text
+Trivy
+```
+
+CI checks for:
+
+```text
+HIGH
+CRITICAL
+```
+
+severity vulnerabilities.
+
+The workflow is configured to fail when applicable high-severity vulnerabilities are detected.
+
+---
+
+## Kubernetes Manifest Validation
+
+Kubernetes manifests are validated using:
+
+```text
+kubeconform
+```
+
+Strict schema validation is enabled for standard Kubernetes resources.
+
+The Prometheus Operator `ServiceMonitor` custom resource is excluded from standard Kubernetes schema validation because it depends on an external CRD.
+
+---
+
+## CI/CD Flow
+
+```text
+Developer Change
+       |
+       v
+Feature Branch
+       |
+       v
+Pull Request
+       |
+       +--> Ruff Lint
+       |
+       +--> Ruff Format Check
+       |
+       +--> Dependency Audit
+       |
+       +--> API Tests
+       |
+       +--> Coverage >= 80%
+       |
+       +--> Docker Build
+       |
+       +--> Trivy Scan
+       |
+       +--> Kubernetes Validation
+       |
+       v
+Merge to main
+       |
+       v
+Build Production Image
+       |
+       v
+Publish to GHCR
+       |
+       v
+k3s Deployment
+```
+
+Pull requests perform validation but do not publish Docker images.
+
+Image publishing occurs after successful changes reach `main`.
+
+Deployment from GHCR to the current k3s environment is currently initiated manually.
+
+---
+
+# Deployment Verification
+
+The deployment has been verified in the project k3s environment.
+
+Verified conditions include:
+
+```text
+KubeRAG Pod: Running
+Container User: appuser
+UID: 10001
+GID: 10001
+Privilege Escalation: Disabled
+Linux Capabilities: Dropped
+Health Model: Loaded
+Readiness Probe: Enabled
+Liveness Probe: Enabled
+```
+
+The live API successfully returned:
+
+```json
+{
+  "health_model_loaded": true
+}
+```
+
+and successfully produced `Healthy`, `Warning`, and `Critical` cluster-health predictions.
+
+---
+
+# Workload Generator
 
 The `workloads/` directory contains a load-generation utility used to create infrastructure activity for monitoring and testing.
 
 ```text
 workloads/
-├── Dockerfile
-└── generate_load.py
++-- Dockerfile
++-- generate_load.py
 ```
 
-The corresponding Kubernetes deployment is defined in:
+The corresponding Kubernetes deployment is:
 
 ```text
 k8s/load-generator.yaml
@@ -459,48 +937,98 @@ k8s/load-generator.yaml
 
 ---
 
-## Current Implementation Notes
+# Configuration
 
-The current implementation uses different ChromaDB connection settings depending on execution context:
+The KubeRAG API supports environment-based configuration for key services.
 
-* `main.py` connects to the Kubernetes service at `chromadb:8000`.
-* `chroma_client.py` uses `localhost:8000`.
-* `ingest.py` and `query.py` currently use `localhost:8002`.
-
-These values reflect different local and Kubernetes access paths and should be aligned or externalized through environment variables in a future revision.
-
-The MLflow training script currently connects to:
+Examples include:
 
 ```text
-http://127.0.0.1:30500
+CHROMA_HOST
+CHROMA_PORT
+OLLAMA_URL
+OLLAMA_MODEL
+HEALTH_MODEL_PATH
+MLFLOW_TRACKING_URI
+ENABLE_MLFLOW
 ```
 
-This value should also be configurable for different environments.
+The Kubernetes deployment currently configures the main service endpoints required by FastAPI.
+
+Some auxiliary scripts still use execution-context-specific ChromaDB connection settings and should be standardized in a future revision.
 
 ---
 
-## Current Limitations
+# Current Limitations
 
-* The health model is trained on the project dataset in `cluster_health.csv`.
-* The trained model artifact must be generated locally before the FastAPI service starts.
-* ChromaDB connection settings are currently hard-coded in several scripts.
-* Ollama model configuration is currently hard-coded to `llama3.2:1b`.
-* The current RAG ingestion script uses a small set of sample monitoring documents.
-* Additional error handling would be required for production deployment.
+- The health classifier is trained using the project-specific `cluster_health.csv` dataset and has not been validated against a large production dataset.
+- Some ChromaDB helper scripts still use different local connection settings.
+- The RAG knowledge base currently contains a limited set of monitoring documents.
+- Ollama configuration requires further standardization across all execution contexts.
+- Deployment from GHCR to the current k3s environment is manually initiated.
+- FastAPI endpoints currently do not implement production authentication or authorization.
+- Additional resilience, scalability, and failure-handling controls would be required for production-scale deployment.
 
 ---
 
-## Future Improvements
+# Future Improvements
 
 Potential improvements include:
 
-* Centralize configuration using environment variables.
-* Standardize ChromaDB connection settings.
-* Make the Ollama model configurable.
-* Automatically ingest live Kubernetes logs and cluster state.
-* Expand the RAG knowledge base using real monitoring events.
-* Improve exception handling and service-health checks.
-* Add automated model retraining.
-* Add model-version validation at application startup.
-* Add automated tests for API endpoints.
-* Add authentication and authorization for production deployments.
+- Automate deployment from GitHub Actions to the k3s environment when appropriate security and repository permissions are available.
+- Centralize Kubernetes configuration using ConfigMaps and Secrets.
+- Standardize ChromaDB connectivity across all application scripts.
+- Automatically ingest live Kubernetes logs and cluster state into the RAG knowledge base.
+- Expand the RAG knowledge base using real monitoring events.
+- Add automated model retraining.
+- Introduce model-version management.
+- Add model drift and prediction-quality monitoring.
+- Add authentication and authorization to FastAPI endpoints.
+- Introduce automated rollback and release-version strategies.
+- Evaluate additional Kubernetes security controls and policy enforcement.
+- Expand integration and end-to-end testing.
+
+---
+
+# Project Context
+
+KubeRAG is part of the broader **Intelligent Power Monitoring & Distribution System**.
+
+The overall project focuses on improving visibility into compute infrastructure by combining:
+
+- Power monitoring
+- Kubernetes infrastructure metrics
+- Anomaly detection
+- Power forecasting
+- Interactive dashboards
+- Cluster-health prediction
+- AI-assisted operational insights
+
+The system is designed to support better monitoring, understanding, and optimization of compute infrastructure as electrical and computational demand grows.
+
+---
+
+# Status
+
+The current KubeRAG implementation has verified:
+
+- FastAPI deployment
+- Random Forest model training
+- Automated model packaging
+- Healthy / Warning / Critical inference
+- ChromaDB integration
+- Ollama integration
+- Prometheus instrumentation
+- Docker containerization
+- Non-root execution
+- Kubernetes security controls
+- Readiness and liveness probes
+- GitHub Actions CI
+- API testing and coverage enforcement
+- Dependency vulnerability auditing
+- Trivy container scanning
+- Kubernetes manifest validation
+- GHCR image publishing
+- Deployment of the GHCR image to k3s
+
+The remaining work is primarily focused on deployment automation, configuration standardization, expanded RAG ingestion, authentication, and production-scale operational controls.
