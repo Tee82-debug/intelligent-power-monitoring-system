@@ -11,6 +11,7 @@ load_dotenv(".env")
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:30500")
 
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+ENABLE_MLFLOW = os.getenv("ENABLE_MLFLOW", "true").lower() == "true"
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, f1_score
@@ -34,16 +35,19 @@ predictions = model.predict(X_test)
 accuracy = accuracy_score(y_test, predictions)
 f1 = f1_score(y_test, predictions, average="weighted")
 
-print("Tracking URI:", mlflow.get_tracking_uri())
-mlflow.set_experiment("kuberag-cluster-health")
+if ENABLE_MLFLOW:
+    print("Tracking URI:", mlflow.get_tracking_uri())
+    mlflow.set_experiment("kuberag-cluster-health")
 
-with mlflow.start_run():
-    mlflow.log_param("model_type", "RandomForestClassifier")
-    mlflow.log_param("n_estimators", 100)
-    mlflow.log_metric("accuracy", accuracy)
-    mlflow.log_metric("f1_score", f1)
+    with mlflow.start_run():
+        mlflow.log_param("model_type", "RandomForestClassifier")
+        mlflow.log_param("n_estimators", 100)
+        mlflow.log_metric("accuracy", accuracy)
+        mlflow.log_metric("f1_score", f1)
 
-    mlflow.sklearn.log_model(model, "cluster_health_model")
+        mlflow.sklearn.log_model(model, "cluster_health_model")
+else:
+    print("MLflow tracking disabled")
 
 joblib.dump(model, "models/cluster_health_model.pkl")
 
