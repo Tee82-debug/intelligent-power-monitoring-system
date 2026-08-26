@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=appuser:appuser . .
 
+RUN ENABLE_MLFLOW=false python app/train_model.py \
+    && chown appuser:appuser models/cluster_health_model.pkl
+
 USER appuser
 
 EXPOSE 8000
