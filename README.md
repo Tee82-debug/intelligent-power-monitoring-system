@@ -233,17 +233,25 @@ The project includes dashboards designed to provide different views of infrastru
 
 Provides a consolidated view of infrastructure health, power consumption, anomalies, and operational indicators.
 
+![Intelligent Operations Dashboard](docs/images/intelligent-operations-dashboard.png)
+
 ### Node Metrics Dashboard
 
 Displays node-level CPU, memory, workload, and infrastructure health metrics.
+
+![Node Metrics Dashboard](docs/images/node-metrics-dashboard.png)
 
 ### Pod Metrics Dashboard
 
 Provides visibility into Kubernetes pod resource utilization and operational behavior.
 
+![Pod Metrics Dashboard](docs/images/pods-metrics-dashboard.png)
+
 ### Power Forecast Dashboard
 
 Visualizes historical power consumption, short-term forecasts, forecast errors, and forecasting performance.
+
+![Power Forecast Dashboard](docs/images/power-forecast-dashboard.png)
 
 ---
 
